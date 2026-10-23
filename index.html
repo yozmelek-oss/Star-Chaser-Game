@@ -1,7 +1,188 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Star Chaser</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#392064,#100820 65%,#03020b);color:white;font-family:Arial,sans-serif;text-align:center;min-height:100vh}
+header{padding:15px}
+h1{font-size:clamp(32px,8vw,55px);color:#f3caff;text-shadow:0 0 22px #b84dff;margin:12px 0}
+p{color:#e3d6ff}
+button{background:#702bb4;color:white;border:1px solid #d5a1ff;border-radius:13px;padding:13px 18px;font-size:17px;font-weight:bold;margin:6px;cursor:pointer}
+button:active{transform:scale(.97)}
+.panel{max-width:620px;margin:12px auto;padding:20px;border:1px solid #68418d;border-radius:20px;background:#170e2be8}
+#game{display:none}
+.stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-size:17px;margin:12px}
+.stat{background:#281440;padding:10px 14px;border-radius:12px}
+canvas{display:block;width:100%;height:min(56vh,480px);min-height:300px;border:1px solid #68418d;border-radius:16px;touch-action:manipulation;background:#090419}
+.small{font-size:13px;color:#c7b4e7}
+select,input{padding:10px;border-radius:9px;background:#211333;color:white;border:1px solid #9871bc}
+</style>
+</head>
 <body>
-<h1>Star Chaser</h1>
-<p>game coming soon</p>
+<header>
+<h1>⭐ STAR CHASER ⭐</h1>
+<p>Catch the falling stars. Build your galaxy!</p>
+</header>
+
+<section id="menu" class="panel">
+<h2>Main Menu</h2>
+<p>Choose your challenge, Star Chaser!</p>
+<div>
+<button onclick="start('Easy')">🌟 Easy</button>
+<button onclick="start('Normal')">✨ Normal</button>
+<button onclick="start('Hard')">💫 Hard</button>
+<button onclick="start('Impossible')">🔥 Impossible</button>
+<button onclick="start('Survival')">♾️ Survival</button>
+</div>
+<p id="best">Best score: 0</p>
+<p id="wallet">🪙 Coins: 0</p>
+<button onclick="shop()">🛍️ Star Shop</button>
+<button onclick="leaderboard()">🏆 Leaderboard</button>
+<button onclick="settings()">⚙️ Settings</button>
+</section>
+
+<section id="game" class="panel">
+<h2 id="mode">Normal</h2>
+<div class="stats">
+<div class="stat">⭐ Score: <span id="score">0</span></div>
+<div class="stat">🪙 Coins: <span id="coins">0</span></div>
+<div class="stat">🔥 Combo: <span id="combo">0</span></div>
+<div class="stat" id="goal">Goal: 0</div>
+</div>
+<canvas id="field"></canvas>
+<p>Tap the glowing falling stars to catch them!</p>
+<button onclick="pauseGame()">⏸ Pause</button>
+<button onclick="backMenu()">⬅ Main Menu</button>
+</section>
+
+<section id="info" class="panel" style="display:none">
+<h2 id="infoTitle"></h2>
+<div id="infoText"></div>
+<button onclick="closeInfo()">⬅ Back</button>
+</section>
+
+<script>
+const $=id=>document.getElementById(id);
+const goals={Easy:250,Normal:500,Hard:750,Impossible:2500,Survival:Infinity};
+let data;
+try{data=JSON.parse(localStorage.getItem('starChaserSave')||'{}')}catch(e){data={}}
+data.coins=data.coins||0;
+data.best=data.best||0;
+data.caught=data.caught||0;
+data.bg=data.bg||'galaxy';
+data.speed=data.speed||1;
+function save(){localStorage.setItem('starChaserSave',JSON.stringify(data));updateWallet()}
+function updateWallet(){$('wallet').textContent='🪙 Coins: '+data.coins;$('coins').textContent=data.coins;$('best').textContent='Best score: '+data.best}
+let canvas=$('field'),ctx=canvas.getContext('2d');
+let running=false,paused=false,mode='Normal',score=0,combo=0,stars=[],particles=[],last=0,spawn=0,raf=0;
+let width=600,height=400,frame=0;
+function resize(){
+ const r=canvas.getBoundingClientRect();
+ const dpr=Math.min(devicePixelRatio||1,2);
+ canvas.width=Math.max(1,r.width*dpr);canvas.height=Math.max(1,r.height*dpr);
+ width=r.width;height=r.height;ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize',resize);
+function start(m){
+ mode=m;score=0;combo=0;stars=[];particles=[];spawn=0;frame=0;
+ $('menu').style.display='none';$('info').style.display='none';$('game').style.display='block';
+ $('mode').textContent='Mode: '+mode;$('goal').textContent=goals[m]===Infinity?'Goal: Endless':'Goal: '+goals[m];
+ resize();running=true;paused=false;last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
+}
+function spawnStar(){
+ const golden=Math.random()<.09;
+ const size=golden?21:16;
+ stars.push({x:size+Math.random()*(Math.max(1,width-size*2)),y:-size,size,
+ speed:(.75+Math.random()*1.1)*data.speed*({Easy:.7,Normal:1,Hard:1.4,Impossible:2.3,Survival:1}[mode]||1),
+ golden,phase:Math.random()*6.28});
+}
+function loop(t){
+ raf=requestAnimationFrame(loop);
+ if(!running||paused)return;
+ let dt=Math.min((t-last)/16.67,2);last=t;frame+=dt;spawn+=dt;
+ const interval=mode==='Easy'?65:mode==='Normal'?49:mode==='Hard'?34:mode==='Impossible'?20:35;
+ if(spawn>interval){spawn=0;spawnStar();if(mode==='Impossible'&&Math.random()<.4)spawnStar()}
+ ctx.clearRect(0,0,width,height);
+ for(let i=0;i<55;i++){
+  const x=(i*97+frame*.1)%width,y=(i*61+frame*.25)%height;
+  ctx.fillStyle='rgba(218,190,255,.45)';ctx.fillRect(x,y,2,2);
+ }
+ for(let i=stars.length-1;i>=0;i--){
+  const s=stars[i];s.y+=s.speed*dt;s.phase+=.08*dt;
+  ctx.save();ctx.translate(s.x,s.y);ctx.rotate(Math.sin(s.phase)*.13);
+  ctx.shadowBlur=s.golden?28:17;ctx.shadowColor=s.golden?'#ffd34f':'#c88aff';
+  ctx.fillStyle=s.golden?'#ffe36a':'#f1dfff';
+  ctx.font=`${s.size*2}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(s.golden?'🌟':'⭐',0,0);ctx.restore();
+  if(s.y>height+30){stars.splice(i,1);combo=0;$('combo').textContent=combo;
+   if(mode!=='Survival'&&score>0)score=Math.max(0,score-3);
+  }
+ }
+ for(let i=particles.length-1;i>=0;i--){
+  let p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+  ctx.globalAlpha=Math.max(0,p.life/24);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,4,4);
+  if(p.life<=0)particles.splice(i,1);
+ }
+ ctx.globalAlpha=1;
+ $('score').textContent=score;$('combo').textContent=combo;$('coins').textContent=data.coins;
+ if(score>=goals[mode])finish();
+}
+function catchAt(x,y){
+ if(!running||paused)return;
+ let hit=-1,dist=Infinity;
+ for(let i=0;i<stars.length;i++){
+  const s=stars[i],d=Math.hypot(s.x-x,s.y-y);
+  if(d<s.size+28&&d<dist){hit=i;dist=d}
+ }
+ if(hit<0)return;
+ const s=stars.splice(hit,1)[0];combo++;
+ let earned=(s.golden?5:1)+(combo>=10?2:combo>=5?1:0);
+ score+=s.golden?5:1;data.coins+=earned;data.caught++;data.best=Math.max(data.best,score);
+ for(let i=0;i<12;i++)particles.push({x:s.x,y:s.y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:24,color:s.golden?'#ffd34f':'#e4aaff'});
+ save();$('score').textContent=score;$('combo').textContent=combo;
+}
+canvas.addEventListener('pointerdown',e=>{
+ const r=canvas.getBoundingClientRect();catchAt(e.clientX-r.left,e.clientY-r.top);
+});
+function pauseGame(){paused=!paused;if(!paused)last=performance.now();$('mode').textContent=paused?'Paused':'Mode: '+mode}
+function finish(){
+ running=false;cancelAnimationFrame(raf);
+ data.best=Math.max(data.best,score);save();
+ showInfo('🎉 Challenge complete!','You caught '+score+' stars and earned coins. Your best score is '+data.best+'.');
+}
+function backMenu(){running=false;cancelAnimationFrame(raf);$('game').style.display='none';$('info').style.display='none';$('menu').style.display='block';updateWallet()}
+function showInfo(title,html){$('game').style.display='none';$('menu').style.display='none';$('info').style.display='block';$('infoTitle').textContent=title;$('infoText').innerHTML=html}
+function closeInfo(){ $('info').style.display='none';$('menu').style.display='block';updateWallet()}
+function shop(){
+ showInfo('🛍️ Star Shop',`<p>You have <b>${data.coins}</b> coins.</p>
+ <button onclick="buyBg('ocean',100)">🌊 Star Ocean · 100</button>
+ <button onclick="buyBg('pink',250)">💗 Pink Nebula · 250</button>
+ <button onclick="buyBg('emerald',500)">💚 Emerald Galaxy · 500</button>
+ <button onclick="buyBg('sunset',1000)">🌅 Cosmic Sunset · 1,000</button>
+ <button onclick="buyUpgrade()">✨ Speed boost · 200</button>
+ <p class="small">Purchases are saved on this device.</p>`);
+}
+function buyBg(bg,cost){if(data.coins<cost){alert('Not enough coins yet!');return}data.coins-=cost;data.bg=bg;save();alert('Background unlocked!');shop()}
+function buyUpgrade(){if(data.coins<200){alert('Not enough coins yet!');return}data.coins-=200;data.speed=Math.min(2.5,data.speed+.2);save();alert('Star speed upgraded!');shop()}
+function leaderboard(){
+ const board=JSON.parse(localStorage.getItem('starChaserScores')||'[]');
+ board.push({name:'You',score:data.best});board.sort((a,b)=>b.score-a.score);
+ showInfo('🏆 Leaderboard','<p>Your best score: '+data.best+'</p><ol>'+board.slice(0,10).map(x=>'<li>'+escapeText(x.name)+': '+x.score+'</li>').join('')+'</ol><p class="small">Scores are saved on this device. Online rankings need a shared server.</p>');
+ localStorage.setItem('starChaserScores',JSON.stringify(board.slice(0,10)));
+}
+function escapeText(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function settings(){
+ showInfo('⚙️ Settings',`<p>Star speed: ${data.speed.toFixed(1)}x</p>
+ <button onclick="setSpeed(0.7)">🐢 Slower</button>
+ <button onclick="setSpeed(1)">⭐ Normal speed</button>
+ <button onclick="setSpeed(1.5)">⚡ Faster</button>
+ <p class="small">Your coins and best score save automatically on this device.</p>`);
+}
+function setSpeed(v){data.speed=v;save();settings()}
+updateWallet();
+</script>
 </body>
 </html>
