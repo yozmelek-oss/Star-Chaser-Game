@@ -742,11 +742,7 @@ function scChooseTemplate(name) {
 
   addStar();
 }
-{
-  if (!confirm("Are you sure you want to choose " + name + "?")) return;
-  const screen = document.getElementById("scCreatorScreen");
-  screen.innerHTML = "<h1>⭐ Level Editor</h1><p>Template: " + name + "</p><button onclick=\"scOpenLevelEditor()\">Back to Templates</button><button onclick=\"scExitLevelEditor()\">Exit</button>";
-}
+  
 function scExitLevelEditor() {
   const screen = document.getElementById("scCreatorScreen");
   if (screen) screen.remove();
