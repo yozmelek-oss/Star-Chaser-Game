@@ -19,6 +19,27 @@ button:active{transform:scale(.97)}
 canvas{display:block;width:100%;height:min(56vh,480px);min-height:300px;border:1px solid #68418d;border-radius:16px;touch-action:manipulation;background:#090419}
 .small{font-size:13px;color:#c7b4e7}
 select,input{padding:10px;border-radius:9px;background:#211333;color:white;border:1px solid #9871bc}
+/* Star Chaser: animated nebula upgrade */
+body {
+  background:
+    radial-gradient(ellipse at 20% 25%, #7136a8aa, transparent 45%),
+    radial-gradient(ellipse at 80% 65%, #2454a8aa, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, #24103f, #070514 85%) !important;
+  background-size: 180% 180%;
+  animation: nebulaPulse 12s ease-in-out infinite alternate;
+}
+
+@keyframes nebulaPulse {
+  0% {
+    background-position: 0% 20%;
+    filter: brightness(0.9);
+  }
+  100% {
+    background-position: 100% 80%;
+    filter: brightness(1.2);
+  }
+}
+
 </style>
 </head>
 <body>
