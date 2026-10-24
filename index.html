@@ -488,7 +488,261 @@ function scChooseTemplate(name) {
   document.body.appendChild(editor);
 }
 
+
 function scChooseTemplate(name) {
+  if (!confirm("Are you sure you want to choose " + name + "?")) {
+    return;
+  }
+
+  const screen = document.getElementById("scCreatorScreen");
+  let stars = [];
+  let selected = null;
+  let length = 30;
+  let song = "No song selected";
+  let sfx = "Default SFX";
+
+  screen.innerHTML = `
+    <style>
+      #scCreatorScreen .sc-workspace {
+        position:relative;
+        min-height:55vh;
+        background:#fff;
+        color:#111;
+        border:8px solid #0755ff;
+        border-radius:45% 8% 35% 5% / 8% 15% 8% 12%;
+        overflow:hidden;
+        margin:12px 0;
+        touch-action:manipulation;
+      }
+      #scCreatorScreen .sc-top {
+        display:flex;
+        justify-content:flex-end;
+        gap:8px;
+        flex-wrap:wrap;
+      }
+      #scCreatorScreen button {
+        background:#0755ff;
+        color:white;
+        border:3px solid black;
+        border-radius:5px;
+        padding:10px;
+        font-size:16px;
+        font-weight:bold;
+      }
+      #scCreatorScreen .sc-star {
+        position:absolute;
+        background:transparent;
+        border:2px solid black;
+        width:110px;
+        height:110px;
+        padding:5px;
+        font-size:65px;
+        line-height:1;
+        display:grid;
+        place-items:center;
+        transform-origin:center;
+        color:#c6ff00;
+      }
+      #scCreatorScreen .sc-tools {
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+        justify-content:center;
+      }
+      #scCreatorScreen .sc-tools button {
+        font-size:clamp(15px,3vw,27px);
+      }
+      #scCreatorScreen .sc-label {
+        color:#111;
+        font-weight:bold;
+        text-align:center;
+      }
+    </style>
+
+    <div class="sc-top">
+      <button id="scSfx">Choose SFX</button>
+      <button id="scSong">Choose song</button>
+      <button id="scClose">✕</button>
+    </div>
+
+    <h1 style="text-align:center">⭐ Level Editor</h1>
+    <p class="sc-label">Template: ${name}</p>
+    <input id="scName" value="My Cosmic Level"
+      maxlength="40" aria-label="Level name"
+      style="font-size:18px;max-width:100%;box-sizing:border-box">
+
+    <div id="scWorkspace" class="sc-workspace"></div>
+
+    <p id="scSelected" class="sc-label">
+      Select a star to edit it
+    </p>
+
+    <div class="sc-tools">
+      <button id="scRotate">⟳ Rotate</button>
+      <button id="scResize">↔ Resize</button>
+      <button id="scGold">💰 Turn to Gold Star</button>
+    </div>
+
+    <div class="sc-tools" style="margin-top:14px">
+      <button id="scAdd">Add star</button>
+      <button id="scRemove">Remove star</button>
+      <button id="scLength">Length: 30s</button>
+    </div>
+
+    <div class="sc-tools" style="margin-top:14px">
+      <button id="scSave">Save</button>
+      <button id="scTest">Save & Test</button>
+      <button id="scBack">Templates</button>
+    </div>
+    <p id="scMessage" class="sc-label"></p>
+  `;
+
+  const workspace = screen.querySelector("#scWorkspace");
+  const message = screen.querySelector("#scMessage");
+
+  function selectStar(star) {
+    selected = star;
+    screen.querySelector("#scSelected").textContent =
+      "Selected star · Drag it to move";
+    stars.forEach(s => {
+      s.style.outline = s === star ? "3px dashed #0755ff" : "none";
+    });
+  }
+
+  function addStar(gold = false) {
+    const star = document.createElement("button");
+    star.className = "sc-star";
+    star.textContent = "★";
+    star.dataset.gold = String(gold);
+    star.style.left = "calc(50% - 55px)";
+    star.style.top = "calc(50% - 55px)";
+    star.style.color = gold ? "#ffbd00" : "#c6ff00";
+    star.style.transform = "rotate(0deg) scale(1)";
+    workspace.appendChild(star);
+
+    const item = {
+      element: star, x: 50, y: 50, angle: 0, scale: 1, gold
+    };
+    stars.push(item);
+
+    star.addEventListener("click", event => {
+      event.stopPropagation();
+      selectStar(item);
+    });
+
+    let dragging = false;
+    star.addEventListener("pointerdown", event => {
+      if (event.target !== star) return;
+      dragging = true;
+      star.setPointerCapture(event.pointerId);
+      selectStar(item);
+    });
+    star.addEventListener("pointermove", event => {
+      if (!dragging) return;
+      const rect = workspace.getBoundingClientRect();
+      item.x = Math.max(5, Math.min(95,
+        (event.clientX - rect.left) / rect.width * 100));
+      item.y = Math.max(5, Math.min(95,
+        (event.clientY - rect.top) / rect.height * 100));
+      star.style.left = item.x + "%";
+      star.style.top = item.y + "%";
+    });
+    star.addEventListener("pointerup", () => dragging = false);
+    star.addEventListener("pointercancel", () => dragging = false);
+
+    selectStar(item);
+  }
+
+  screen.querySelector("#scAdd").onclick = () => addStar();
+
+  screen.querySelector("#scRemove").onclick = () => {
+    if (!selected) {
+      message.textContent = "Select a star first!";
+      return;
+    }
+    selected.element.remove();
+    stars = stars.filter(s => s !== selected);
+    selected = null;
+    screen.querySelector("#scSelected").textContent =
+      "Select a star to edit it";
+  };
+
+  screen.querySelector("#scRotate").onclick = () => {
+    if (!selected) return;
+    selected.angle = (selected.angle + 45) % 360;
+    selected.element.style.transform =
+      `rotate(${selected.angle}deg) scale(${selected.scale})`;
+  };
+
+  screen.querySelector("#scResize").onclick = () => {
+    if (!selected) return;
+    selected.scale = selected.scale >= 1.8 ? 0.6 : selected.scale + 0.3;
+    selected.element.style.transform =
+      `rotate(${selected.angle}deg) scale(${selected.scale})`;
+  };
+
+  screen.querySelector("#scGold").onclick = () => {
+    if (!selected) return;
+    selected.gold = !selected.gold;
+    selected.element.dataset.gold = String(selected.gold);
+    selected.element.style.color = selected.gold ? "#ffbd00" : "#c6ff00";
+  };
+
+  screen.querySelector("#scLength").onclick = () => {
+    length = length >= 120 ? 15 : length + 15;
+    screen.querySelector("#scLength").textContent =
+      "Length: " + length + "s";
+  };
+
+  screen.querySelector("#scSfx").onclick = () => {
+    sfx = prompt("Enter an SFX name:", sfx) || sfx;
+    message.textContent = "SFX: " + sfx;
+  };
+
+  screen.querySelector("#scSong").onclick = () => {
+    song = prompt("Enter a song name:", song) || song;
+    message.textContent = "Song: " + song;
+  };
+
+  function saveLevel() {
+    const level = {
+      name: screen.querySelector("#scName").value.trim()
+        || "My Cosmic Level",
+      world: name,
+      length,
+      song,
+      sfx,
+      stars: stars.map(s => ({
+        x: s.x, y: s.y, gold: s.gold,
+        angle: s.angle, scale: s.scale
+      }))
+    };
+
+    const levels = JSON.parse(
+      localStorage.getItem("scCustomLevels") || "[]"
+    );
+    const index = levels.findIndex(item => item.name === level.name);
+    if (index >= 0) levels[index] = level;
+    else levels.push(level);
+
+    localStorage.setItem("scCustomLevels", JSON.stringify(levels));
+    message.textContent = "⭐ Level saved!";
+  }
+
+  screen.querySelector("#scSave").onclick = saveLevel;
+
+  screen.querySelector("#scTest").onclick = () => {
+    saveLevel();
+    message.textContent =
+      "Saved! Actual gameplay testing still needs to be connected.";
+  };
+
+  screen.querySelector("#scBack").onclick = scOpenLevelEditor;
+  screen.querySelector("#scClose").onclick = scExitLevelEditor;
+
+  addStar();
+}
+{
   if (!confirm("Are you sure you want to choose " + name + "?")) return;
   const screen = document.getElementById("scCreatorScreen");
   screen.innerHTML = "<h1>⭐ Level Editor</h1><p>Template: " + name + "</p><button onclick=\"scOpenLevelEditor()\">Back to Templates</button><button onclick=\"scExitLevelEditor()\">Exit</button>";
