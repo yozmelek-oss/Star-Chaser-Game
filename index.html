@@ -360,7 +360,23 @@ function scAddRating(rating) {
 
   showTemplates();
 }
+function scOpenLevelEditor() {
+  const screen = document.getElementById("scCreatorScreen");
+  if (screen) {
+    screen.remove();
+  }
+  const editor = document.createElement("div");
+  editor.id = "scCreatorScreen";
+  editor.style.cssText = "position:fixed;inset:0;z-index:99999;background:#100824;color:white;padding:20px;overflow:auto";
+  editor.innerHTML = "<h1>🌌 Choose a Template</h1><button onclick=\"scChooseTemplate('Nebula World')\">💜 Nebula World</button><button onclick=\"scChooseTemplate('Solar World')\">☀️ Solar World</button><button onclick=\"scChooseTemplate('Frozen World')\">❄️ Frozen World</button>";
+  document.body.appendChild(editor);
+}
 
+function scChooseTemplate(name) {
+  if (!confirm("Are you sure you want to choose " + name + "?")) return;
+  const screen = document.getElementById("scCreatorScreen");
+  screen.innerHTML = "<h1>⭐ Level Editor</h1><p>Template: " + name + "</p><button onclick=\"scOpenLevelEditor()\">Back to Templates</button><button onclick=\"scExitLevelEditor()\">Exit</button>";
+}
 function scExitLevelEditor() {
   const screen = document.getElementById("scCreatorScreen");
   if (screen) screen.remove();
