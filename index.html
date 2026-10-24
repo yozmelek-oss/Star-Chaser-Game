@@ -43,6 +43,7 @@ body {
 </style>
 </head>
 <body>
+  
 <div id="loginScreen">
 <h1>⭐ Star Chaser ⭐</h1>
 <input id="usernameInput" placeholder="Choose your username" maxlength="20">
@@ -63,6 +64,7 @@ body {
 <button onclick="start('Hard')">💫 Hard</button>
 <button onclick="start('Impossible')">🔥 Impossible</button>
 <button onclick="start('Survival')">♾️ Survival</button>
+  <button onclick="scOpenLevelEditor()">🛠️ Level Creator</button>
 </div>
 <p id="best">Best score: 0</p>
 <p id="wallet">🪙 Coins: 0</p>
@@ -210,16 +212,19 @@ function settings(){
 }
 function setSpeed(v){data.speed=v;save();settings()}
 updateWallet();
- // STAR CHASER LEVEL SYSTEM
+// STAR CHASER LEVEL SYSTEM
 const SC_LEVEL_KEY = "starChaserLevel";
 let scLevel = Number(localStorage.getItem(SC_LEVEL_KEY)) || 1;
-  function scGetWorld(level) {
+
+function scGetWorld(level) {
   if (level >= 100) return 5;
   if (level >= 50) return 4;
   if (level >= 25) return 3;
   if (level >= 10) return 2;
   return 1;
-    function scSaveLevel(level) {
+}
+
+function scSaveLevel(level) {
   scLevel = Math.max(1, Math.min(150, level));
   localStorage.setItem(SC_LEVEL_KEY, scLevel);
 
@@ -227,9 +232,12 @@ let scLevel = Number(localStorage.getItem(SC_LEVEL_KEY)) || 1;
   localStorage.setItem("starChaserWorld", world);
 
   return { level: scLevel, world: world };
-      function scAddRating(rating) {
+}
+
+function scAddRating(rating) {
   const gained = Math.max(0, Math.floor(rating));
-  const total = Number(localStorage.getItem("starChaserRatings") || 0) + gained;
+  const total =
+    Number(localStorage.getItem("starChaserRatings") || 0) + gained;
 
   localStorage.setItem("starChaserRatings", total);
 
@@ -246,8 +254,7 @@ let scLevel = Number(localStorage.getItem(SC_LEVEL_KEY)) || 1;
     alert("🏆 ULTIMATE VICTORY! You conquered Star Chaser!");
   }
 }
-}
-}
+  
 </script>
 </body>
 </html>
