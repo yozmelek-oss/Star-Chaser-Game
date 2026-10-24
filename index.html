@@ -254,7 +254,117 @@ function scAddRating(rating) {
     alert("🏆 ULTIMATE VICTORY! You conquered Star Chaser!");
   }
 }
-  
+  function scOpenLevelEditor() {
+  const templates = [
+    ["Nebula World", "💜", "Purple clouds and glowing stars"],
+    ["Solar World", "☀️", "Golden light and solar flares"],
+    ["Frozen World", "❄️", "Icy blue space"],
+    ["Emerald World", "💚", "Green cosmic clouds"],
+    ["Black Hole World", "🕳️", "Dark space and a glowing vortex"],
+    ["Rainbow Galaxy", "🌈", "Colorful cosmic effects"],
+    ["Banana Galaxy", "🍌", "A silly yellow star universe"],
+    ["Crystal Planet", "💎", "Shimmering crystal stars"],
+    ["Create from Scratch", "➕", "Build your own world"]
+  ];
+
+  let screen = document.getElementById("scCreatorScreen");
+
+  if (!screen) {
+    screen = document.createElement("div");
+    screen.id = "scCreatorScreen";
+    screen.style.cssText =
+      "position:fixed;inset:0;z-index:99999;background:#100824;color:white;padding:18px;overflow:auto;font-family:Arial,sans-serif";
+    document.body.appendChild(screen);
+  }
+
+  function showTemplates() {
+    screen.innerHTML = `
+      <h1>🌌 Choose a Template</h1>
+      <div id="scTemplateGrid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px"></div>
+      <button id="scCreatorExit">Exit</button>
+    `;
+
+    const grid = screen.querySelector("#scTemplateGrid");
+
+    templates.forEach(([name, icon, description]) => {
+      const button = document.createElement("button");
+      button.style.cssText =
+        "padding:16px 8px;border-radius:12px;background:#302052;color:white;border:1px solid #9b78df";
+      button.innerHTML =
+        `<div style="font-size:28px">${icon}</div><b>${name}</b><p>${description}</p>`;
+      button.onclick = () => confirmTemplate(name);
+      grid.appendChild(button);
+    });
+
+    screen.querySelector("#scCreatorExit").onclick = scExitLevelEditor;
+  }
+
+  function confirmTemplate(name) {
+    screen.innerHTML = `
+      <h2>Use ${name}?</h2>
+      <p>Are you sure you want to choose this template?</p>
+      <button id="scTemplateYes">Yes</button>
+      <button id="scTemplateNo">No</button>
+    `;
+
+    screen.querySelector("#scTemplateYes").onclick = () => {
+      localStorage.setItem("scSelectedTemplate", name);
+      showEditor(name);
+    };
+
+    screen.querySelector("#scTemplateNo").onclick = showTemplates;
+  }
+
+  function showEditor(name) {
+    screen.innerHTML = `
+      <h1>⭐ Level Editor</h1>
+      <h2>${name}</h2>
+      <label>Level name</label>
+      <input id="scLevelName" value="My Cosmic Level" maxlength="40">
+      <p>⭐ Selected template: ${name}</p>
+      <button id="scSave">💾 Save</button>
+      <button id="scTest">▶ Save & Test</button>
+      <button id="scRename">✏️ Rename</button>
+      <button id="scBack">Back to Templates</button>
+      <button id="scExit">Exit</button>
+      <p id="scMessage"></p>
+    `;
+
+    screen.querySelector("#scSave").onclick = () => {
+      const level = {
+        name: screen.querySelector("#scLevelName").value.trim() || "My Cosmic Level",
+        world: name
+      };
+      const levels = JSON.parse(localStorage.getItem("scCustomLevels") || "[]");
+      const index = levels.findIndex(item => item.name === level.name);
+      if (index >= 0) levels[index] = level;
+      else levels.push(level);
+      localStorage.setItem("scCustomLevels", JSON.stringify(levels));
+      screen.querySelector("#scMessage").textContent = "⭐ Level saved!";
+    };
+
+    screen.querySelector("#scTest").onclick = () => {
+      screen.querySelector("#scSave").click();
+      screen.querySelector("#scMessage").textContent =
+        "Saved! Connecting playable testing comes next.";
+    };
+
+    screen.querySelector("#scRename").onclick = () => {
+      screen.querySelector("#scLevelName").focus();
+      screen.querySelector("#scLevelName").select();
+    };
+
+    screen.querySelector("#scBack").onclick = showTemplates;
+    screen.querySelector("#scExit").onclick = scExitLevelEditor;
+  }
+
+  showTemplates();
+}
+
+function scExitLevelEditor() {
+  const screen = document.getElementById("scCreatorScreen");
+  if (screen) screen.remove();
+}
 </script>
 </body>
 </html>
