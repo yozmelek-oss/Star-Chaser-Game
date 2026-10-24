@@ -210,6 +210,44 @@ function settings(){
 }
 function setSpeed(v){data.speed=v;save();settings()}
 updateWallet();
+ // STAR CHASER LEVEL SYSTEM
+const SC_LEVEL_KEY = "starChaserLevel";
+let scLevel = Number(localStorage.getItem(SC_LEVEL_KEY)) || 1;
+  function scGetWorld(level) {
+  if (level >= 100) return 5;
+  if (level >= 50) return 4;
+  if (level >= 25) return 3;
+  if (level >= 10) return 2;
+  return 1;
+    function scSaveLevel(level) {
+  scLevel = Math.max(1, Math.min(150, level));
+  localStorage.setItem(SC_LEVEL_KEY, scLevel);
+
+  const world = scGetWorld(scLevel);
+  localStorage.setItem("starChaserWorld", world);
+
+  return { level: scLevel, world: world };
+      function scAddRating(rating) {
+  const gained = Math.max(0, Math.floor(rating));
+  const total = Number(localStorage.getItem("starChaserRatings") || 0) + gained;
+
+  localStorage.setItem("starChaserRatings", total);
+
+  const newLevel = Math.min(150, 1 + Math.floor(total / 100));
+  const oldLevel = scLevel;
+
+  scSaveLevel(newLevel);
+
+  if (newLevel > oldLevel) {
+    alert("⭐ LEVEL UP! You reached Level " + newLevel + "!");
+  }
+
+  if (newLevel === 150 && oldLevel < 150) {
+    alert("🏆 ULTIMATE VICTORY! You conquered Star Chaser!");
+  }
+}
+}
+}
 </script>
 </body>
 </html>
