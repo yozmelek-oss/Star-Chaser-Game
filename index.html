@@ -360,7 +360,123 @@ function scAddRating(rating) {
 
   showTemplates();
 }
-function scOpenLevelEditor() {
+function scChooseTemplate(name) {
+  if (!confirm("Are you sure you want to choose " + name + "?")) {
+    return;
+  }
+
+  const screen = document.getElementById("scCreatorScreen");
+  const stars = [];
+
+  screen.innerHTML = `
+    <h1>⭐ Level Editor</h1>
+    <p>Template: ${name}</p>
+    <input id="scLevelName" value="My Cosmic Level"
+      placeholder="Level name">
+
+    <div id="scWorkspace"
+      style="position:relative;height:350px;background:#100824;
+      border:2px solid #a78bfa;border-radius:12px;overflow:hidden;
+      margin:12px 0;touch-action:manipulation">
+    </div>
+
+    <button id="scAddStar">⭐ Add Star</button>
+    <button id="scGoldStar">🌟 Add Gold Star</button>
+    <button id="scRemoveStar">🗑️ Remove Selected</button>
+    <button id="scSaveLevel">💾 Save</button>
+    <button id="scTestLevel">▶ Save & Test</button>
+    <button onclick="scOpenLevelEditor()">Back to Templates</button>
+    <button onclick="scExitLevelEditor()">Exit</button>
+    <p id="scEditorMessage">Tap a star to select it.</p>
+  `;
+
+  const workspace = screen.querySelector("#scWorkspace");
+  let selectedStar = null;
+
+  function addStar(gold = false) {
+    const star = document.createElement("button");
+    star.textContent = gold ? "🌟" : "⭐";
+    star.style.cssText =
+      "position:absolute;left:45%;top:40%;font-size:30px;" +
+      "background:transparent;border:0;padding:4px;touch-action:manipulation";
+    star.dataset.gold = String(gold);
+    workspace.appendChild(star);
+    stars.push(star);
+    selectStar(star);
+  }
+
+  function selectStar(star) {
+    selectedStar = star;
+    screen.querySelector("#scEditorMessage").textContent =
+      "Selected " + star.textContent +
+      ". Use the arrow buttons to move it.";
+  }
+
+  workspace.addEventListener("click", event => {
+    if (event.target.tagName === "BUTTON") {
+      selectStar(event.target);
+    }
+  });
+
+  screen.querySelector("#scAddStar").onclick = () => addStar();
+  screen.querySelector("#scGoldStar").onclick = () => addStar(true);
+
+  screen.querySelector("#scRemoveStar").onclick = () => {
+    if (!selectedStar) return;
+    const index = stars.indexOf(selectedStar);
+    if (index >= 0) stars.splice(index, 1);
+    selectedStar.remove();
+    selectedStar = null;
+  };
+
+  ["⬅️", "⬆️", "⬇️", "➡️"].forEach((arrow, index) => {
+    const button = document.createElement("button");
+    button.textContent = arrow;
+    button.onclick = () => {
+      if (!selectedStar) return;
+      const directions = [
+        [-5, 0], [0, -5], [0, 5], [5, 0]
+      ];
+      const [dx, dy] = directions[index];
+      const x = parseFloat(selectedStar.style.left) || 0;
+      const y = parseFloat(selectedStar.style.top) || 0;
+      selectedStar.style.left = Math.max(0, Math.min(90, x + dx)) + "%";
+      selectedStar.style.top = Math.max(0, Math.min(85, y + dy)) + "%";
+    };
+    workspace.after(button);
+  });
+
+  screen.querySelector("#scSaveLevel").onclick = saveLevel;
+
+  function saveLevel() {
+    const level = {
+      name: screen.querySelector("#scLevelName").value.trim()
+        || "My Cosmic Level",
+      world: name,
+      stars: stars.map(star => ({
+        x: parseFloat(star.style.left) || 0,
+        y: parseFloat(star.style.top) || 0,
+        gold: star.dataset.gold === "true"
+      }))
+    };
+
+    const levels = JSON.parse(
+      localStorage.getItem("scCustomLevels") || "[]"
+    );
+    const index = levels.findIndex(item => item.name === level.name);
+    if (index >= 0) levels[index] = level;
+    else levels.push(level);
+
+    localStorage.setItem("scCustomLevels", JSON.stringify(levels));
+    screen.querySelector("#scEditorMessage").textContent = "⭐ Level saved!";
+  }
+
+  screen.querySelector("#scTestLevel").onclick = () => {
+    saveLevel();
+    screen.querySelector("#scEditorMessage").textContent =
+      "Level saved. Connecting it to playable gameplay is the next step.";
+  };
+}
   const screen = document.getElementById("scCreatorScreen");
   if (screen) {
     screen.remove();
